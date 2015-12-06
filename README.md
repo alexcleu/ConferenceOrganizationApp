@@ -23,7 +23,7 @@ App Engine application for the Udacity training course. --Updated API for Udacit
 1. (Optional) Generate your client library(ies) with [the endpoints tool][6].
 1. Deploy your application.
 
-###Setup prior to testing the API
+##Setup prior to testing the API
 1. Please make sure to create the conference first.
 1. Please go down the tested endpoints method one by one
 
