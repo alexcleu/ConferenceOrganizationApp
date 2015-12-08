@@ -582,13 +582,26 @@ class ConferenceApi(remote.Service):
             items=[self._copyConferenceToForm(conf, "") for conf in q]
         )
 #----------Session -------------------------------#
+
+    def _copySessionToForm(self, sess):
+        """ copy relevant fields from Session to SessionForm"""
+        sf = SessionForm()
+        for field in sf.all_fields():
+            if hasattr(sess, field.name):
+                setattr(sf, field.name, str(getattr(sess, field.name)))
+            elif field.name == "sess_key":
+                setattr(sf,field.name, sess.key.urlsafe())
+                    
+        sf.check_initialized()
+
+        return sf 
+
+
     def _createSessionObject(self, request):
         """Create Session Object, returning SessionForm/request"""
         user = endpoints.get_current_user()
         if not user:
             raise endpoints.UnauthorizedException('Authorization required')
-        if not request.confwebsafeKey:
-            raise endpoints.BadRequestException("Conference websafeKey field required")
         user_id = getUserId(user)
         #copy Session/ProtoRPC Message into dict
         data = {field.name: getattr(request, field.name) for field in request.all_fields()}
@@ -596,12 +609,18 @@ class ConferenceApi(remote.Service):
         #copy the websafe key 
         wbsk = request.confwebsafeKey
         data['confwebsafeKey'] = wbsk
+        
+        #change the date to Date format
+        if data['date']:
+            data['date'] = datetime.strptime(data['date'][:10], "%Y-%m-%d").date()
+            
+        #TODO: Change the start time to time format
 
         
-        #generating session key by the profile
-        p_key = ndb.Key(Profile, user_id)
-        s_id = Session.allocate_ids(size=1, parent=p_key)[0]
-        s_key = ndb.Key(Session, s_id, parent=p_key)
+        #generating session key by the Conference
+        c_key = ndb.Key(Conference, wbsk)
+        s_id = Session.allocate_ids(size=1, parent=c_key)[0]
+        s_key = ndb.Key(Session, s_id, parent=c_key)
         
         data['key'] = s_key
         del data['sess_key']
@@ -615,25 +634,11 @@ class ConferenceApi(remote.Service):
   
         if number_of_sessions >= 1:
             taskqueue.add(params={'speaker': data['speaker'], 'confwebsafeKey': wbsk},
-            url='/tasks/set_featured_guest',
+            url='/tasks/set_featured_speaker',
             method = 'GET')
             
-        return request
+        return _copySessionToForm(request)
         
-        
-
-    def _copySessionToForm(self, sess):
-        """ copy relevant fields from Session to SessionForm"""
-        sf = SessionForm()
-        for field in sf.all_fields():
-            if hasattr(sess, field.name):
-                setattr(sf, field.name, str(getattr(sess, field.name)))
-            elif field.name == "sess_key":
-                setattr(sf,field.name, sess.key.urlsafe())
-                    
-        sf.check_initialized()
-
-        return sf
     
     
   
@@ -651,7 +656,7 @@ class ConferenceApi(remote.Service):
                 'Conference key required')
         if not request.name:
             raise endpoints.NotFoundException(
-                'Name matters'
+                "Name required when creating new Sessions"
             )
         
   
@@ -676,7 +681,7 @@ class ConferenceApi(remote.Service):
     #getConferenceSessions(websafeConferenceKey)-- Given a conference, return all sessions
     @endpoints.method(SESS_GET_REQUEST, SessionForms,
             path='conferences/session/{confwebsafeKey}',
-            http_method='GET', name='getConferenceSession')
+            http_method='GET', name='getConferenceSessions')
     def getConferenceSessions(self, request):
         """ Given a confernece, return all sessions"""
         webconfkey = request.confwebsafeKey
@@ -733,13 +738,13 @@ class ConferenceApi(remote.Service):
         """ Given a speaker, return all session given by this particular
         speaker, across all conferences
         """
-        spker = request.speaker
-        if not spker:
+        request_speaker = request.speaker
+        if not request_speaker:
             raise endpoints.NotFoundException(
                 'Please provide a speaker!'
             )
         
-        sesss = Session.query(Session.speaker == spker)
+        sesss = Session.query(Session.speaker == request_speaker)
         if not sesss:
             raise endpoints.NotFoundException(
                 'Please provide a coming speaker'
@@ -804,6 +809,7 @@ class ConferenceApi(remote.Service):
         """    
         query for all the sessions in a conference that the user is interested in
         """
+        #TODO: FIX THIS Endpoint. it is not functioning correctly 
         user = endpoints.get_current_user()
         user_id = getUserId(user)
         if not user:
@@ -831,7 +837,7 @@ class ConferenceApi(remote.Service):
 
 
 #Come up with 2 additional queries
-#TODO: Implemetn filter playground 
+#TODO: add a new filtername
     @endpoints.method(message_types.VoidMessage, SessionForms,
             path='filterSessionPlayground',
             http_method='GET', name='filterSessionPlayground')
@@ -846,7 +852,8 @@ class ConferenceApi(remote.Service):
         return SessionForms(
             items=[self._copySessionToForm(sess) for sess in q]
         )
-     
+
+#TODO: change the filter with user input: pontentially type input + time input? 
     @endpoints.method(message_types.VoidMessage, SessionForms,
             path='filterSessionPlaygroundTwo',
             http_method='GET', name='filterSessionPlaygroundTwo')
@@ -868,24 +875,21 @@ class ConferenceApi(remote.Service):
     @staticmethod
     def _cacheSessAnnouncement(spkr, wbsk):
         """Create Announcement & assign to memcache; used by
-        memcache cron job & getFeaturedSpeaker().
+        memcache & getFeaturedSpeaker().
         """
+
         sesss = Session.query(Session.speaker == spkr, Session.confwebsafeKey == wbsk )
 
         if sesss:
-            # If there are almost sold out conferences,
-            # format announcement and set it in memcache
+            #if the speaker has more than 1 sessions, he becomes the featured speaker
             announcement = SESSION_FEATURED_TPL % (
                 ', '.join(sess.speaker + " in " + sess.name for sess in sesss))
             memcache.set(MEMCACHE_FEATURED_SPEAKER_KEY, announcement)
 
         else:
-            # If there are no sold out conferences,
-            # delete the memcache announcements entry
+            # If there are no featured speakers, delete the memecache 
             announcement = ""
             memcache.delete(MEMCACHE_FEATURED_SPEAKER_KEY)
-
-        return announcement
 
 
     @endpoints.method(message_types.VoidMessage, StringMessage,
