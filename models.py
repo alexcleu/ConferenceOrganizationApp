@@ -26,8 +26,8 @@ class Profile(ndb.Model):
     displayName = ndb.StringProperty()
     mainEmail = ndb.StringProperty()
     teeShirtSize = ndb.StringProperty(default='NOT_SPECIFIED')
-    conferenceKeysToAttend = ndb.StringProperty(repeated=True)
-    sessionKeysInterested = ndb.StringProperty(repeated=True)
+    conferenceKeysToAttend = ndb.KeyProperty(kind=Conference,repeated=True)
+    sessionKeysInterested = ndb.StringProperty(kind=Session,repeated=True)
 
 class ProfileMiniForm(messages.Message):
     """ProfileMiniForm -- update Profile form message"""
@@ -115,10 +115,10 @@ class Session(ndb.Model):
     name           = ndb.StringProperty(required=True)
     highlights     = ndb.StringProperty()
     speaker        = ndb.StringProperty()
-    duration       = ndb.StringProperty()
+    duration       = ndb.FloatProperty()
     typeOfSession  = ndb.StringProperty()
-    date           = ndb.StringProperty()
-    startTime      = ndb.StringProperty()
+    date           = ndb.DateProperty()
+    startTime      = ndb.TimeProperty()
     confwebsafeKey = ndb.StringProperty(required=True)
 
 class SessionForm(messages.Message):
