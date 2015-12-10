@@ -17,6 +17,31 @@ import endpoints
 from protorpc import messages
 from google.appengine.ext import ndb
 
+class Conference(ndb.Model):
+    """Conference -- Conference object"""
+    name            = ndb.StringProperty(required=True)
+    description     = ndb.StringProperty()
+    organizerUserId = ndb.StringProperty()
+    topics          = ndb.StringProperty(repeated=True)
+    city            = ndb.StringProperty()
+    startDate       = ndb.DateProperty()
+    month           = ndb.IntegerProperty() 
+    endDate         = ndb.DateProperty()
+    maxAttendees    = ndb.IntegerProperty()
+    seatsAvailable  = ndb.IntegerProperty()
+    
+    
+class Session(ndb.Model):
+    """ Session -- Session object"""
+    name           = ndb.StringProperty(required=True)
+    highlights     = ndb.StringProperty()
+    speaker        = ndb.StringProperty()
+    duration       = ndb.FloatProperty()
+    typeOfSession  = ndb.StringProperty()
+    date           = ndb.DateProperty()
+    startTime      = ndb.TimeProperty()
+    confwebsafeKey = ndb.StringProperty(required=True)
+    
 class ConflictException(endpoints.ServiceException):
     """ConflictException -- exception mapped to HTTP 409 response"""
     http_status = httplib.CONFLICT
@@ -27,7 +52,7 @@ class Profile(ndb.Model):
     mainEmail = ndb.StringProperty()
     teeShirtSize = ndb.StringProperty(default='NOT_SPECIFIED')
     conferenceKeysToAttend = ndb.KeyProperty(kind=Conference,repeated=True)
-    sessionKeysInterested = ndb.StringProperty(kind=Session,repeated=True)
+    sessionKeysInterested = ndb.KeyProperty(kind=Session,repeated=True)
 
 class ProfileMiniForm(messages.Message):
     """ProfileMiniForm -- update Profile form message"""
@@ -50,18 +75,6 @@ class BooleanMessage(messages.Message):
     """BooleanMessage-- outbound Boolean value message"""
     data = messages.BooleanField(1)
 
-class Conference(ndb.Model):
-    """Conference -- Conference object"""
-    name            = ndb.StringProperty(required=True)
-    description     = ndb.StringProperty()
-    organizerUserId = ndb.StringProperty()
-    topics          = ndb.StringProperty(repeated=True)
-    city            = ndb.StringProperty()
-    startDate       = ndb.DateProperty()
-    month           = ndb.IntegerProperty() 
-    endDate         = ndb.DateProperty()
-    maxAttendees    = ndb.IntegerProperty()
-    seatsAvailable  = ndb.IntegerProperty()
 
 class ConferenceForm(messages.Message):
     """ConferenceForm -- Conference outbound form message"""
@@ -110,16 +123,7 @@ class ConferenceQueryForms(messages.Message):
     """ConferenceQueryForms -- multiple ConferenceQueryForm inbound form message"""
     filters = messages.MessageField(ConferenceQueryForm, 1, repeated=True)
     
-class Session(ndb.Model):
-    """ Session -- Session object"""
-    name           = ndb.StringProperty(required=True)
-    highlights     = ndb.StringProperty()
-    speaker        = ndb.StringProperty()
-    duration       = ndb.FloatProperty()
-    typeOfSession  = ndb.StringProperty()
-    date           = ndb.DateProperty()
-    startTime      = ndb.TimeProperty()
-    confwebsafeKey = ndb.StringProperty(required=True)
+
 
 class SessionForm(messages.Message):
     """Sessionform -- Session Outbound form message"""

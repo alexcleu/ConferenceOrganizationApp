@@ -613,9 +613,10 @@ class ConferenceApi(remote.Service):
         #change the date to Date format
         if data['date']:
             data['date'] = datetime.strptime(data['date'][:10], "%Y-%m-%d").date()
-            
-        #TODO: Change the start time to time format
-
+        if data['startTime']:
+            hour = int(data['startTime'][:2])
+            second = int(data['startTime'][-2:])
+            data['startTime'] = datetime.strptime(data['startTime'],"%H:%M").time()
         
         #generating session key by the Conference
         c_key = ndb.Key(Conference, wbsk)
@@ -637,7 +638,7 @@ class ConferenceApi(remote.Service):
             url='/tasks/set_featured_speaker',
             method = 'GET')
             
-        return _copySessionToForm(request)
+        return self._copySessionToForm(request)
         
     
     
