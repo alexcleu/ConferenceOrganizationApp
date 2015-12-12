@@ -487,6 +487,7 @@ class ConferenceApi(remote.Service):
         if not conf:
             raise endpoints.NotFoundException(
                 'No conference found with key: %s' % wsck)
+        
 
         # register
         if reg:
@@ -803,22 +804,28 @@ class ConferenceApi(remote.Service):
       """
       return self._SessionWishList(request)
       
-#getSessionsInWishlist() -- query for all the sessions in a conference that the user is interested in
+
     @endpoints.method(message_types.VoidMessage, SessionForms, path='session/user/wishlist',
        http_method='GET', name='getSessionInWishList')
     def getSessionInWishList(self, request):
         """    
         query for all the sessions in a conference that the user is interested in
         """
-        #TODO: FIX THIS Endpoint. it is not functioning correctly 
+
         user = endpoints.get_current_user()
         user_id = getUserId(user)
         if not user:
             raise endpoints.UnauthorizedException('Authorization required')
- 
         
-        sesss = Session.query(ancestor=ndb.Key(Profile, user_id))
-       
+        # Find the current user 
+        prof = self._getProfileFromUser()
+        #look for all of the session interested
+        Sesss_interested = prof.sessionKeysInterested 
+        
+        #sess_keys look sesssions 
+        sess_keys = [ndb.Key(urlsafe=sess_key) for sess_key in prof.sessionKeysInterested]
+        sesss = ndb.get_multi(sess_keys)
+                
         
         return SessionForms (
             items=[self._copySessionToForm(sess) for sess in sesss]
