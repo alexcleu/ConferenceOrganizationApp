@@ -53,7 +53,7 @@ MEMCACHE_ANNOUNCEMENTS_KEY = "RECENT_ANNOUNCEMENTS"
 ANNOUNCEMENT_TPL = ('Last chance to attend! The following conferences '
                     'are nearly sold out: %s')
 MEMCACHE_FEATURED_SPEAKER_KEY = "RECENT FEATURED SPEAKERS"
-SESSION_FEATURED_TPL = ('Featured Guest %s!')
+SESSION_FEATURED_TPL = ('Featured Guest: %s!')
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 DEFAULTS = {
@@ -639,15 +639,10 @@ class ConferenceApi(remote.Service):
         #create session.. now 
         Session(**data).put()
         
-        sesss = Session.query(Session.speaker == data['speaker'],
-                              Session.confwebsafeKey == wbsk
-                              )
-        number_of_sessions = sesss.count()
-  
-        if number_of_sessions >= 1:
-            taskqueue.add(params={'speaker': data['speaker'], 'confwebsafeKey': wbsk},
-            url='/tasks/set_featured_speaker',
-            method = 'GET')
+        
+        taskqueue.add(params={'speaker': data['speaker'], 'confwebsafeKey': wbsk},
+        url='/tasks/set_featured_speaker',
+        method = 'GET')
             
         return self._copySessionToForm(request)
         
@@ -894,10 +889,12 @@ class ConferenceApi(remote.Service):
         """Create Announcement & assign to memcache; used by
         memcache & getFeaturedSpeaker().
         """
+        
 
         sesss = Session.query(Session.speaker == spkr, Session.confwebsafeKey == wbsk )
-
-        if sesss:
+        number_of_sessions = sesss.count()
+        
+        if number_of_sessions >= 1:
             #if the speaker has more than 1 sessions, he becomes the featured speaker
             announcement = SESSION_FEATURED_TPL % (
                 ', '.join(sess.speaker + " in " + sess.name for sess in sesss))
