@@ -116,6 +116,16 @@ SESS_GET_WISHLIST_REQUEST = endpoints.ResourceContainer(
     message_types.VoidMessage,
     sess_key = messages.StringField(1),
 )
+
+GET_ACA_FESTIVAL_BY_DATE = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    date_wanted = messages.StringField(1),
+)
+
+GET_MUSIC_BY_TIME = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    start_time = messages.StringField(1),
+)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -844,33 +854,32 @@ class ConferenceApi(remote.Service):
         
 
 
-#Come up with 2 additional queries
-#TODO: add a new filtername
-    @endpoints.method(message_types.VoidMessage, SessionForms,
-            path='filterSessionPlayground',
-            http_method='GET', name='filterSessionPlayground')
-    def filterSessionPlayground(self, request):
-        """filterSessionPlayground
-        Look for sessions that are type Music, with speak Alex Leu
+    @endpoints.method(GET_MUSIC_BY_TIME, SessionForms,
+            path='MusicByTime',
+            http_method='GET', name='MusicByTime')
+    def MusicByTime(self, request):
+        """Looking for Music session after a specific time
         """
         q = Session.query()
+        insert_start_time = request.start_time
+        time_in_object = datetime.strptime(insert_start_time,"%H:%M").time()
         q = q.filter(Session.typeOfSession=="Music")
-        q = q.filter(Session.speaker=="Alex Leu")
+        q = q.filter(Session.startTime > time_in_object)
 
         return SessionForms(
             items=[self._copySessionToForm(sess) for sess in q]
         )
 
-#TODO: change the filter with user input: pontentially type input + time input? 
-    @endpoints.method(message_types.VoidMessage, SessionForms,
-            path='filterSessionPlaygroundTwo',
-            http_method='GET', name='filterSessionPlaygroundTwo')
-    def filterSessionPlaygroundTwo(self, request):
-        """filterSessionPlaygroundTwo
-        Look for Aca-festival on the date on 2015-12-10
+    @endpoints.method(GET_ACA_FESTIVAL_BY_DATE, SessionForms,
+            path='AcaFestivalByDate',
+            http_method='GET', name='AcaFestivalByDate')
+    def AcaFestivalByDate(self, request):
+        """Look for Aca-fetival by the date
         """
         q = Session.query()
-        q = q.filter(Session.date=="2015-12-10")
+        current_date = request.date_wanted
+        date_in_object = datetime.strptime(current_date, "%Y-%m-%d").date()
+        q = q.filter(Session.date== date_in_object)
         q = q.filter(Session.name=="Aca-festival")
 
         return SessionForms(
