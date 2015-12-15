@@ -51,7 +51,7 @@ answers:
 Datestore has a query restriction regarding to number of inequalities on properties. Within a query most one property can have an inequality filter due to having to scan the entire index. If we were to implement the query where startTime <= 7PM and typeOfSession != "workshop", it would have 2 inequalities on two properties(startTime and typeOfSession), which will be invalid. 
 
 
-To solve this problem, we can use one query to pull out all the sessions that are non-workshop sessions, and then use python codes to filter out the sessions that has startTime after 7PM. This latter solution only requires one query, which will be more efficient. 
+To solve this problem, we can use one query to pull out all the sessions that are non-workshop sessions, and then use python codes to filter out the sessions that has startTime after 7PM. This solution only requires one query, which will be more efficient. 
 
 
 [1]: https://developers.google.com/appengine
