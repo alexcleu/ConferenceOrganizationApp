@@ -48,9 +48,10 @@ Both had User input for date or time in string, but both were adjusted different
 1. Let’s say that you don't like workshops and you don't like sessions after 7 pm. How would you handle a query for all non-workshop sessions before 7 pm? What is the problem for implementing this query? What ways to solve it did you think of?
 
 answers: 
-The potential problem that can happen is datastore query restriction. Datastore requires queries to have inequality filter to be sorted first, and apply the ineqaulity filter afterwards. Session after 7PM needs the sessions to be sorted first before querying sessions by the time. 
+Datestore has a query restriction regarding to number of inequalities on properties. Within a query most one property can have an inequality filter due to having to scan the entire index. If we were to implement the query where startTime <= 7PM and typeOfSession != "workshop", it would have 2 inequalities on two properties(startTime and typeOfSession), which will be invalid. 
 
-To impletment this query, first sort the property with the ineqaulity(session names) first, then filter the inequality for session starttime < 19:00, and then filter the typeOfSession != workshop. 
+
+To solve this problem, we can use one query to pull out all the sessions that are non-workshop sessions, and then use python codes to filter out the sessions that has startTime after 7PM. This latter solution only requires one query, which will be more efficient. 
 
 
 [1]: https://developers.google.com/appengine
